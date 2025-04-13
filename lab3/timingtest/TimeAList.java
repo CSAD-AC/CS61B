@@ -35,7 +35,6 @@ public class TimeAList {
         N.addLast(64000);
         N.addLast(128000);
         N.addLast(256000);
-        N.addLast(10000000);
         for(int i = 0; i < N.size(); i++){
             int N_i = N.get(i);
             Stopwatch sw = new Stopwatch();

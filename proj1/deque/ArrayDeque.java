@@ -60,7 +60,7 @@ public class ArrayDeque<T> implements deque<T>{
             return null;
         }
         T item = items[0];
-        for (int i = 0; i < size; i++) {
+        for (int i = 0; i < size-1; i++) {
             items[i] = items[i + 1];
         }
         size--;
@@ -69,8 +69,8 @@ public class ArrayDeque<T> implements deque<T>{
 
     @Override
     public T removeLast() {
-        if(size == items.length / 4 && size >= 16){
-            resize((int) (size * 0.25));
+        if(size == items.length / 4 - 1 && size >= 16){
+            resize((int) (items.length * 0.25));
         }
         if(size == 0){
             return null;

@@ -1,5 +1,6 @@
 package deque;
 
+import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
@@ -13,6 +14,21 @@ public class ArrayDequeTest {
         deque = new ArrayDeque<Integer>();
     }
 
+    @Test
+    public void randomTest(){
+        for (int i = 0; i < 10000; i++) {
+            int op = StdRandom.uniform(0, 4);
+            if (op == 0) {
+                deque.addFirst(i);
+            } else if (op == 1) {
+                deque.addLast(i);
+            } else if (op == 2) {
+                deque.removeFirst();
+            } else if (op == 3) {
+                deque.removeLast();
+            }
+        }
+    }
     // --- addFirst测试 ---
     @Test
     public void testAddFirst() {

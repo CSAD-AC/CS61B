@@ -1,18 +1,12 @@
 package deque;
 
 import edu.princeton.cs.algs4.StdRandom;
-import org.junit.Before;
 import org.junit.Test;
 import static org.junit.Assert.*;
 
 public class ArrayDequeTest {
 
-    private ArrayDeque<Integer> deque;
-
-    @Before
-    public void setUp() {
-        deque = new ArrayDeque<Integer>();
-    }
+    private ArrayDeque<Integer> deque = new ArrayDeque<Integer>();
 
     @Test
     public void randomTest(){

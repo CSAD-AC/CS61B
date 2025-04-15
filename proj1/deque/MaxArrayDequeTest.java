@@ -11,8 +11,8 @@ public class MaxArrayDequeTest {
 
     @Before
     public void setUp() {
-        deque = new MaxArrayDeque<>(Comparator.naturalOrder());
-        reverseDeque = new MaxArrayDeque<>(Comparator.reverseOrder());
+        deque = new MaxArrayDeque<>((Comparator<Integer>) Comparator.naturalOrder());
+        reverseDeque = new MaxArrayDeque<>((Comparator<Integer>)Comparator.reverseOrder());
     }
 
     @Test

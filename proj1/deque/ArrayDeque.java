@@ -49,7 +49,7 @@ public class ArrayDeque<T> implements Deque<T> {
 
     @Override
     public T removeFirst() {
-        if(size == items.length / 4 - 1 && size >= 16){
+        if(size == items.length / 4 - 1 && size >= 16) {
             resize((int) (items.length * 0.25));
         }
         if(size == 0){

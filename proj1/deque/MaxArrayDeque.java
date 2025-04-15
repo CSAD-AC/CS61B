@@ -4,9 +4,9 @@ import java.util.Comparator;
 
 public class MaxArrayDeque<T> extends ArrayDeque<T>{
 //    private Comparator<T> comparator;
-    private final Comparator<? super T> comparator;
+    private final Comparator<T> comparator;
 
-    public MaxArrayDeque(Comparator<? super T> comparator) {
+    public MaxArrayDeque(Comparator<T> comparator) {
         super();
         this.comparator = comparator;
     }
@@ -17,7 +17,7 @@ public class MaxArrayDeque<T> extends ArrayDeque<T>{
         return max(comparator);
     }
 
-    public T max(Comparator<? super T> c){
+    public T max(Comparator<T> c){
         if(isEmpty()){
             return null;
         }

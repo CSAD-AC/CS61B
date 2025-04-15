@@ -1,6 +1,6 @@
 package deque;
 
-public class ArrayDeque<T> implements deque<T>{
+public class ArrayDeque<T> implements Deque<T> {
     private T[] items;
     private int size = 0;
 
@@ -34,10 +34,6 @@ public class ArrayDeque<T> implements deque<T>{
         size++;
     }
 
-    @Override
-    public boolean isEmpty() {
-        return size == 0;
-    }
 
     @Override
     public int size() {

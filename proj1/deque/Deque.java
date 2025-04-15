@@ -1,9 +1,8 @@
 package deque;
 
-public interface deque <T>{
+public interface Deque<T>{
     public void addFirst(T item);
     public void addLast(T item);
-    public boolean isEmpty();
     public int size();
     public void printDeque();
     public T removeFirst();
@@ -11,4 +10,7 @@ public interface deque <T>{
     public T get(int index);
     public boolean equals(Object o);
 
+    public default boolean isEmpty(){
+        return size() == 0;
+    }
 }

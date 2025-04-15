@@ -1,6 +1,6 @@
 package deque;
 
-public class LinkedListDeque<T> implements deque<T>{
+public class LinkedListDeque<T> implements Deque<T> {
     private class Node{
         private Node prev, next;
         private T item;
@@ -50,10 +50,6 @@ public class LinkedListDeque<T> implements deque<T>{
         size++;
     }
 
-    @Override
-    public boolean isEmpty() {
-        return size == 0;
-    }
 
     @Override
     public int size() {

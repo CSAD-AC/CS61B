@@ -2,6 +2,9 @@ package deque;
 
 import edu.princeton.cs.algs4.StdRandom;
 import org.junit.Test;
+
+import java.util.Iterator;
+
 import static org.junit.Assert.*;
 
 public class ArrayDequeTest {
@@ -127,5 +130,41 @@ public class ArrayDequeTest {
             deque.removeFirst();
         }
         assertEquals(0, deque.size());
+    }
+    // --- iterator测试 ---
+    @Test
+    public void testIterator() {
+        deque.addFirst(1);
+        deque.addLast(2);
+        deque.addFirst(3);
+        deque.addLast(4);
+        deque.addFirst(5);
+
+        Iterator<Integer> iterator = deque.iterator();
+        assertTrue(iterator.hasNext());
+        assertEquals(5, (int) iterator.next());
+        assertTrue(iterator.hasNext());
+        assertEquals(3, (int) iterator.next());
+        assertTrue(iterator.hasNext());
+        assertEquals(1, (int) iterator.next());
+    }
+
+    // --- equals测试 ---
+    @Test
+    public void testEquals() {
+        deque.addFirst(1);
+        deque.addLast(2);
+        deque.addFirst(3);
+
+        assertFalse(deque==new ArrayDeque<Integer>());
+        assertFalse(deque.equals(new LinkedListDeque<Integer>()));
+        assertFalse(deque==new ArrayDeque<Integer>());
+        ArrayDeque<Integer> other = new ArrayDeque<Integer>();
+        other.addFirst(1);
+        other.addLast(2);
+        assertFalse(deque==other);
+        other.addFirst(3);
+        assertTrue("内容应该相等",deque.equals(other));
+        assertFalse("地址不应该相等",deque == other);
     }
 }

@@ -167,4 +167,31 @@ public class ArrayDequeTest {
         assertTrue("内容应该相等",deque.equals(other));
         assertFalse("地址不应该相等",deque == other);
     }
+    @Test
+    public void testEquals2() {
+        deque.addFirst(1);
+        deque.addLast(2);
+        deque.addFirst(3);
+
+        assertFalse(deque.equals(new LinkedListDeque<Integer>()));
+        assertFalse(deque.equals(new ArrayDeque<Integer>()));
+        assertFalse(deque.equals(new LinkedListDeque<Integer>()));
+
+        ArrayDeque<Integer> other = new ArrayDeque<Integer>();
+        LinkedListDeque<Integer> other2 = new LinkedListDeque<Integer>();
+        other.addFirst(1);
+        other.addLast(2);
+        other2.addFirst(1);
+        other2.addLast(2);
+        assertFalse(deque.equals(other));
+        assertFalse(deque.equals(other2));
+        assertTrue(other.equals(other2));
+        other.addFirst(3);
+        assertTrue("内容应该相等",deque.equals(other));
+        other2.addFirst(3);
+        assertTrue("内容应该相等",deque.equals(other2));
+
+
+    }
+
 }

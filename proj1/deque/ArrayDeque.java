@@ -4,8 +4,8 @@ import java.util.Iterator;
 
 public class ArrayDeque<T> implements Deque<T> , Iterable<T> {
     private T[] items;
-    int nextFirst, nextLast;
-    int size;
+    private int nextFirst, nextLast;
+    private int size;
 
     public ArrayDeque() {
         items = (T[]) new Object[8];

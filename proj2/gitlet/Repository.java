@@ -448,27 +448,7 @@ public class Repository {
             }
         }
     }
-    private static void checkUntrackedFiles(Commit split, Commit current, Commit given) {
-        for (File file : CWD.listFiles()) {
-            String fileName = file.getName();
-            // 文件未被跟踪的条件：
-            // 1. 不在当前提交中
-            // 2. 不在暂存区中
-            boolean untracked = !current.getFileToBlobID().containsKey(fileName)
-                    && !readStagingArea().containsKey(fileName);
 
-            if (untracked) {
-                // 检查是否会被覆盖
-                String givenBlobHash = given.getFileToBlobID().get(fileName);
-                String splitBlobHash = split.getFileToBlobID().get(fileName);
-
-                if (givenBlobHash != null && !Objects.equals(givenBlobHash, splitBlobHash)) {
-                    System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
-                    System.exit(0);
-                }
-            }
-        }
-    }
     private static void checkUntrackedFiles(Commit targetCommit) {
         Commit currentCommit = getCurrentCommit(); // 获取当前 HEAD 提交
         Map<String, String> staging = readStagingArea();
@@ -501,7 +481,7 @@ public class Repository {
             }
         }
     }
-    public static void reset(String commitID, boolean checkOutBranch) {
+    public static void reset(String commitID, boolean isCheckOutBranch) {
         checkInGitlet();
 
         File commitFile = join(OBJECTS_DIR, commitID);
@@ -532,7 +512,7 @@ public class Repository {
         }
 
         String currentBranch = getCurrentBranch();
-        if (!checkOutBranch)
+        if (!isCheckOutBranch)
             writeContents(join(HEADS_DIR, currentBranch), commitID);
 
     }
@@ -563,18 +543,16 @@ public class Repository {
         // 情况1：给定分支是当前分支的祖先
         if (splitPoint.getId().equals(givenCommit.getId())) {
             System.out.println("Given branch is an ancestor of the current branch.");
-            return;
+            System.exit(0);
         }
 
-        // 情况2：快进合并
+        // 情况2：当前分支是给定分支的祖先
             if (splitPoint.getId().equals(currentCommit.getId())) {
                 checkout(branchName); // 复用checkout逻辑
                 System.out.println("Current branch fast-forwarded.");
-                return;
+                System.exit(0);
             }
 
-        // ========== 4. 检查未跟踪文件冲突 ==========
-        //checkUntrackedFiles(splitPoint, currentCommit, givenCommit);
 
         // ========== 5. 执行三方合并 ==========
         Map<String, String> mergedFiles = new HashMap<>();

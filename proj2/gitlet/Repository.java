@@ -60,6 +60,7 @@ public class Repository {
         writeObject(initialCommitFile, initial);
         writeContents(HEAD, "ref: refs/heads/master\n");
         writeContents(join(HEADS_DIR, "master"), initial.getId());
+
     }
     // 读取暂存区
     //@SuppressWarnings("unchecked")
@@ -123,7 +124,7 @@ public class Repository {
             // 内容相同 → 从暂存区移除（如果存在）
             stagingArea.remove(fileName);
             saveStagingArea(stagingArea);
-            return;
+            System.exit(0);
         }
 
         // 6. 暂存文件（覆盖旧记录）
@@ -206,15 +207,37 @@ public class Repository {
             file.delete();
         }
     }
-    private static void getCurrentBranchLog(Commit currentCommit) {
-        while (currentCommit != null) {
-            printCommit(currentCommit);
+    private static void getCurrentBranchLog(Commit startCommit) {
+        Set<String> visited = new HashSet<>();
+        // 优先队列按提交时间从新到旧排序
+        PriorityQueue<Commit> queue = new PriorityQueue<>((c1, c2) ->
+                c2.getTimestamp().compareTo(c1.getTimestamp())
+        );
+        queue.add(startCommit);
+        visited.add(startCommit.getId());
 
-            if (currentCommit.getParent1ID() != null) {
-                Commit currentCommitParent = readObject(join(OBJECTS_DIR, currentCommit.getParent1ID()), Commit.class);
-                currentCommit = currentCommitParent;
-            } else {
-                currentCommit = null;
+        while (!queue.isEmpty()) {
+            Commit commit = queue.poll();
+            printCommit(commit);
+
+            // 处理第一个父提交
+            if (commit.getParent1ID() != null) {
+                String parent1Id = commit.getParent1ID();
+                if (!visited.contains(parent1Id)) {
+                    Commit parent1 = readObject(join(OBJECTS_DIR, parent1Id), Commit.class);
+                    queue.add(parent1);
+                    visited.add(parent1Id);
+                }
+            }
+
+            // 处理第二个父提交（合并提交）
+            if (commit.getParent2ID() != null) {
+                String parent2Id = commit.getParent2ID();
+                if (!visited.contains(parent2Id)) {
+                    Commit parent2 = readObject(join(OBJECTS_DIR, parent2Id), Commit.class);
+                    queue.add(parent2);
+                    visited.add(parent2Id);
+                }
             }
         }
     }
@@ -237,10 +260,37 @@ public class Repository {
     }
     public static void globalLog() {
         checkInGitlet();
+        Set<String> visited = new HashSet<>();
+        PriorityQueue<Commit> queue = new PriorityQueue<>((c1, c2) ->
+                c2.getTimestamp().compareTo(c1.getTimestamp())
+        );
 
-        for(File headFile : HEADS_DIR.listFiles()){
-            Commit currentCommit = readObject(join(OBJECTS_DIR, readContentsAsString(headFile)), Commit.class);
-            getCurrentBranchLog(currentCommit);
+        // 添加所有分支的最新提交到队列
+        for (File branchFile : HEADS_DIR.listFiles()) {
+            String commitHash = readContentsAsString(branchFile);
+            if (!visited.contains(commitHash)) {
+                Commit commit = readObject(join(OBJECTS_DIR, commitHash), Commit.class);
+                queue.add(commit);
+                visited.add(commitHash);
+            }
+        }
+
+        // 遍历所有可达提交
+        while (!queue.isEmpty()) {
+            Commit commit = queue.poll();
+            printCommit(commit);
+
+            // 处理父提交
+            addParentToQueue(commit.getParent1ID(), queue, visited);
+            addParentToQueue(commit.getParent2ID(), queue, visited);
+        }
+    }
+
+    private static void addParentToQueue(String parentId, PriorityQueue<Commit> queue, Set<String> visited) {
+        if (parentId != null && !visited.contains(parentId)) {
+            Commit parent = readObject(join(OBJECTS_DIR, parentId), Commit.class);
+            queue.add(parent);
+            visited.add(parentId);
         }
     }
 
@@ -303,15 +353,20 @@ public class Repository {
 
     public static void checkout(String branchName) {
         checkInGitlet();
+
         File branch= join(HEADS_DIR, branchName);
+
         if (!branch.exists()) {
             System.out.println("No such branch exists.");
+            System.exit(0);
         } else if(branchName.equals(getCurrentBranch())) {
             System.out.println("No need to checkout the current branch.");
+            System.exit(0);
         }
+
+        Commit targetCommit = readObject(join(OBJECTS_DIR, readContentsAsString(branch)), Commit.class);
+        reset(targetCommit.getId(), true);
         writeContents(HEAD, "ref: refs/heads/" + branchName);
-        Commit currentCommit = getCurrentCommit();
-        reset(currentCommit.getId());
 
     }
     public static void checkout(String commitId, String fileName) {
@@ -394,8 +449,8 @@ public class Repository {
         }
     }
     private static void checkUntrackedFiles(Commit split, Commit current, Commit given) {
-        for (String fileName : plainFilenamesIn(CWD)) {
-            File file = join(CWD, fileName);
+        for (File file : CWD.listFiles()) {
+            String fileName = file.getName();
             // 文件未被跟踪的条件：
             // 1. 不在当前提交中
             // 2. 不在暂存区中
@@ -415,30 +470,38 @@ public class Repository {
         }
     }
     private static void checkUntrackedFiles(Commit targetCommit) {
+        Commit currentCommit = getCurrentCommit(); // 获取当前 HEAD 提交
         Map<String, String> staging = readStagingArea();
+
         for (String fileName : plainFilenamesIn(CWD)) {
-            boolean inCommit = targetCommit.getFileToBlobID().containsKey(fileName);
+            boolean inTarget = targetCommit.getFileToBlobID().containsKey(fileName);
             boolean inStaging = staging.containsKey(fileName);
             boolean inWorking = join(CWD, fileName).exists();
+            boolean inCurrent = currentCommit.getFileToBlobID().containsKey(fileName);
 
-            // 规则1：完全未跟踪文件
-            if (!inCommit && !inStaging && inWorking) {
+            // 规则1：完全未跟踪文件（不在任何提交或暂存区）
+            if (!inTarget && !inStaging && !inCurrent && inWorking) {
                 System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                 System.exit(0);
             }
 
-            // 规则2：可能被覆盖的修改
-            if (inCommit && !inStaging && inWorking) {
-                Blob commitBlob = readObject(join(OBJECTS_DIR, targetCommit.getFileToBlobID().get(fileName)),  Blob.class);
-                byte[] workingContent = readContents(join(CWD, fileName));
-                if (!commitBlob.getContent().equals(workingContent)) {
+            // 规则2：工作区文件与当前提交不一致，且未暂存 → 可能丢失修改
+            if (inCurrent && !inStaging && inWorking) {
+                Blob currentBlob = readObject(join(OBJECTS_DIR, currentCommit.getFileToBlobID().get(fileName)), Blob.class);
+                Blob wrokingBlob = new Blob(readContents(join(CWD, fileName)));
+                if (!currentBlob.getID().equals(wrokingBlob.getID())) {
                     System.out.println("There is an untracked file in the way; delete it, or add and commit it first.");
                     System.exit(0);
                 }
             }
+            // 新增规则3：暂存区中的新增文件（未被任何提交跟踪）
+            if (inStaging) {
+                System.out.println("Cannot switch branches with untracked files in staging area.");
+                System.exit(0);
+            }
         }
     }
-    public static void reset(String commitID) {
+    public static void reset(String commitID, boolean checkOutBranch) {
         checkInGitlet();
 
         File commitFile = join(OBJECTS_DIR, commitID);
@@ -466,10 +529,12 @@ public class Repository {
             File file = join(CWD, fileName);
             Blob blob = readObject(join(OBJECTS_DIR, entry.getValue()), Blob.class);
             writeContents(file, blob.getContent());
-
         }
-        //  更新当前分支节点
-        writeContents(join(HEADS_DIR, getCurrentBranch()), commit.getId());
+
+        String currentBranch = getCurrentBranch();
+        if (!checkOutBranch)
+            writeContents(join(HEADS_DIR, currentBranch), commitID);
+
     }
 
     public static void merge(String branchName) {
@@ -509,7 +574,7 @@ public class Repository {
             }
 
         // ========== 4. 检查未跟踪文件冲突 ==========
-        checkUntrackedFiles(splitPoint, currentCommit, givenCommit);
+        //checkUntrackedFiles(splitPoint, currentCommit, givenCommit);
 
         // ========== 5. 执行三方合并 ==========
         Map<String, String> mergedFiles = new HashMap<>();
@@ -549,7 +614,7 @@ public class Repository {
                 mergedFiles.put(fileName, givenBlobHash);
                 continue;
             }
-
+            // 两个分支都修改
             // 规则4：新增文件（分割点不存在）
             if (baseBlobHash == null) {
                 if (currentBlobHash == null) {
@@ -569,10 +634,7 @@ public class Repository {
 
             // 规则5：新增文件冲突(分割点存在) → 生成冲突标记
             hasConflict = true;
-            byte[] conflictContent = generateConflictContent(
-                    currentContent,
-                    givenContent
-            );
+            byte[] conflictContent = generateConflictContent(currentContent, givenContent);
             Blob conflictBlob = new Blob(conflictContent);
             saveBlob(conflictBlob);
             mergedFiles.put(fileName, conflictBlob.getID());
@@ -603,6 +665,31 @@ public class Repository {
         if (hasConflict) {
             System.out.println("Encountered a merge conflict.");
         }
+        // ========== 7. 更新工作目录 ==========
+        // 删除合并提交中不存在的文件
+        for (File file : CWD.listFiles()) {
+            String fileName = file.getName();
+            if (!mergedFiles.containsKey(fileName)) {
+                file.delete();
+            }
+        }
+
+        // 写入合并后的文件内容
+        for (Map.Entry<String, String> entry : mergedFiles.entrySet()) {
+            String fileName = entry.getKey();
+            String blobHash = entry.getValue();
+            File file = join(CWD, fileName);
+
+            if (blobHash != null) {
+                Blob blob = readObject(join(OBJECTS_DIR, blobHash), Blob.class);
+                writeContents(file, blob.getContent());
+            } else {
+                // 如果blobHash为null，表示文件应被删除
+                if (file.exists()) {
+                    file.delete();
+                }
+            }
+        }
     }
 
     private static byte[] getBlobContent(String blobHash) {
@@ -622,11 +709,11 @@ public class Repository {
     private static byte[] generateConflictContent(byte[] current, byte[] given) {
         ByteArrayOutputStream out = new ByteArrayOutputStream();
         try {
-            out.write("<<<<<<< HEAD\n".getBytes(StandardCharsets.UTF_8));
+            out.write("current<<<<<<< HEAD\n".getBytes(StandardCharsets.UTF_8));
             if (current != null) out.write(current);
             out.write("\n=======\n".getBytes(StandardCharsets.UTF_8));
             if (given != null) out.write(given);
-            out.write("\n>>>>>>>\n".getBytes(StandardCharsets.UTF_8));
+            out.write("\n>>>>>>>given\n".getBytes(StandardCharsets.UTF_8));
         } catch (IOException e) {
             throw new RuntimeException("Conflict generation failed");
         }
@@ -634,18 +721,30 @@ public class Repository {
     }
 
     private static Commit findSplitPoint(Commit current, Commit given) {
-        while (current != null) {
-            Commit givenCommit = given;
+        Set<String> visited = new HashSet<>();
 
-            while (givenCommit != null) {
-                if (current.getId().equals(givenCommit.getId())) {
-                    return current;
-                }
-                givenCommit = readObject(join(OBJECTS_DIR, given.getParent1ID()), Commit.class);
-            }
-            current = readObject(join(OBJECTS_DIR, current.getParent1ID()), Commit.class);
+        // 遍历 current 的祖先
+        while (current != null) {
+            visited.add(current.getId());
+            current = getFirstParent(current); // 确保 getFirstParent 处理 null
         }
-        return null;
+
+        // 遍历 given 的祖先，寻找第一个已访问的提交
+        while (given != null) {
+            if (visited.contains(given.getId())) {
+                return given;
+            }
+            given = getFirstParent(given);
+        }
+
+        return null; // 无共同祖先（理论上不可能）
+    }
+
+    private static Commit getFirstParent(Commit commit) {
+        if (commit == null || commit.getParent1ID() == null) {
+            return null;
+        }
+        return readObject(join(OBJECTS_DIR, commit.getParent1ID()), Commit.class);
     }
 
 

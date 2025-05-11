@@ -708,13 +708,11 @@ public class Repository {
         }
 
         // 遍历 given 的祖先，寻找第一个已访问的提交
-        while (given != null) {
+        while (given != null)
             if (visited.contains(given.getId())) {
                 return given;
             }
-            given = getFirstParent(given);
-        }
-
+        given = getFirstParent(given);
         return null; // 无共同祖先（理论上不可能）
     }
 

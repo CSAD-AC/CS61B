@@ -2,13 +2,13 @@ package bstmap;
 
 import java.util.*;
 
-public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
+public class BSTMap<K extends Comparable<K>, V> implements Map61B<K, V> {
 
     private class Node {
-        k key;
-        v value;
+        K key;
+        V value;
         Node left, right;
-        public Node(k k, v v) {
+        public Node(K k, V v) {
             key = k;
             value = v;
             left = right = null;
@@ -20,7 +20,7 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
         root = null;
         size = 0;
     }
-    public BSTMap(k k, v v) {
+    public BSTMap(K k, V v) {
         root = new Node(k, v);
         size = 1;
     }
@@ -32,7 +32,7 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     @Override
-    public boolean containsKey(k key) {
+    public boolean containsKey(K key) {
         Node current = root;
         while (current != null) {
             int compare = key.compareTo(current.key);
@@ -48,7 +48,7 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     @Override
-    public v get(k key) {
+    public V get(K key) {
         Node current = root;
         while (current != null) {
             int compare = key.compareTo(current.key);
@@ -69,7 +69,7 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     @Override
-    public void put(k key, v value) {
+    public void put(K key, V value) {
         if(root == null) {
             root = new Node(key, value);
             size++;
@@ -106,17 +106,17 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     public void printInOrder() {
-        ArrayList<k> keys = new ArrayList<>();
+        ArrayList<K> keys = new ArrayList<>();
         keys = addAllKeys(root);
         Collections.sort(keys, (k1, k2) -> k1.compareTo(k2));
-        for (k key : keys) {
+        for (K key : keys) {
             System.out.print(key + " ");
         }
     }
 
 
-    private ArrayList<k> addAllKeys(Node node) {
-        ArrayList<k> keys = new ArrayList<>();
+    private ArrayList<K> addAllKeys(Node node) {
+        ArrayList<K> keys = new ArrayList<>();
         if (node == null) {
             return keys;
         }
@@ -127,13 +127,13 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     @Override
-    public Set<k> keySet() {
-        Set<k> keySet = new HashSet<>();
+    public Set<K> keySet() {
+        Set<K> keySet = new HashSet<>();
         addKeys(root, keySet);
         return keySet;
     }
 
-    private void addKeys(Node node, Set<k> set) {
+    private void addKeys(Node node, Set<K> set) {
         if (node == null) return;
         set.add(node.key);          // 添加当前节点键
         addKeys(node.left, set);    // 递归左子树
@@ -141,12 +141,12 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     @Override
-    public v remove(k key) {
+    public V remove(K key) {
         return remove(key, null);
     }
 
     @Override
-    public v remove(k key, v value) {
+    public V remove(K key, V value) {
         Node parent = null;
         Node current = root;
         boolean isLeftChild = false;
@@ -169,7 +169,7 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
         if (value != null && !value.equals(current.value)) return null; // 值不匹配
 
 
-        v removedValue = current.value;
+        V removedValue = current.value;
 
         // 2. 处理双子树情况
         if (current.left != null && current.right != null) {
@@ -213,7 +213,7 @@ public class BSTMap<k extends Comparable<k>, v> implements Map61B<k, v> {
     }
 
     @Override
-    public Iterator<k> iterator() {
+    public Iterator<K> iterator() {
         return keySet().iterator();
     }
 
